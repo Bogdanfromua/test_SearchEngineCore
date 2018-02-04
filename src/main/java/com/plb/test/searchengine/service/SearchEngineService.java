@@ -1,4 +1,4 @@
-package com.plb.test.searchengine;
+package com.plb.test.searchengine.service;
 
 import org.springframework.stereotype.Component;
 

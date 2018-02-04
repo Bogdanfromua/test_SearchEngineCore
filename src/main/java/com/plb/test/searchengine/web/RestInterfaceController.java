@@ -1,4 +1,4 @@
-package com.plb.test.searchengine;
+package com.plb.test.searchengine.web;
 
 import com.plb.test.searchengine.exceptions.DocumentNotFoundException;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,7 +16,7 @@ import static org.springframework.http.MediaType.TEXT_PLAIN_VALUE;
 
 
 @RestController
-public class RestInterface {
+public class RestInterfaceController {
     //TODO
     private Map<String, String> documentsTp = new HashMap<>();
 
