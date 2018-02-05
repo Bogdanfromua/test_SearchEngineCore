@@ -11,6 +11,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -28,25 +29,39 @@ public class RestInterfaceControllerITest {
     @Autowired
     private MockMvc mvc;
 
+    private static MockHttpServletRequestBuilder getDocumentRequest(String key) {
+        return get("/documents/" + key)
+                .accept(MediaType.TEXT_PLAIN);
+    }
+
+    private static MockHttpServletRequestBuilder putDocumentRequest(String key, String value) {
+        return put("/documents/"+key)
+                .contentType(MediaType.TEXT_PLAIN)
+                .content(value);
+    }
+
+    private static MockHttpServletRequestBuilder findDocumentRequest(String query) {
+        return get("/findDocuments")
+                .param("query", query)
+                .accept(MediaType.APPLICATION_JSON);
+    }
+
     @Test
     @DirtiesContext
     public void addDocument() throws Exception {
-        mvc.perform(
-                put("/documents/test")
-                        .contentType(MediaType.TEXT_PLAIN)
-                        .content("testValue"))
+        String value = "testValue";
+        String key = "testKey";
+
+        mvc.perform(putDocumentRequest(key, value))
                 .andExpect(status().isOk());
     }
 
 
     @Test
     public void getDocument_nonExist() throws Exception {
-        mvc.perform(
-                get("/documents/test")
-                        .accept(MediaType.TEXT_PLAIN))
+        mvc.perform(getDocumentRequest("test"))
                 .andExpect(status().isNotFound());
     }
-
 
     @Test
     @DirtiesContext
@@ -54,26 +69,18 @@ public class RestInterfaceControllerITest {
         String value = "testValue";
         String key = "test";
 
-        mvc.perform(
-                put("/documents/" + key)
-                        .contentType(MediaType.TEXT_PLAIN)
-                        .content(value))
+        mvc.perform(putDocumentRequest(key, value))
                 .andExpect(status().isOk());
 
-        mvc.perform(
-                get("/documents/" + key)
-                        .accept(MediaType.TEXT_PLAIN))
+        mvc.perform(getDocumentRequest(key))
                 .andExpect(status().isOk())
                 .andExpect(content().string(value));
-
     }
 
     @Test
     public void findDocuments_emptySet() throws Exception {
-        mvc.perform(
-                get("/findDocuments")
-                        .param("query", "search query")
-                        .accept(MediaType.APPLICATION_JSON))
+        String query = "search query";
+        mvc.perform(findDocumentRequest(query))
                 .andExpect(status().isOk())
                 .andExpect(content().json("[]"));
     }
@@ -82,39 +89,19 @@ public class RestInterfaceControllerITest {
     @DirtiesContext
     public void addAndFindDocuments() throws Exception {
         String query = "test";
-
-        Map<String, String> matchingDocuments = new HashMap<>();
-        matchingDocuments.put("k1", "test aaa");
-        matchingDocuments.put("k2", "test bbb");
-
-        Map<String, String> notMatchingDocuments = new HashMap<>();
-        notMatchingDocuments.put("k3", "tes aaa");
-        notMatchingDocuments.put("k4", "tes bbb");
+        Map<String, String> documents = new HashMap<>();
+        documents.put("k1", "test aaa");
+        documents.put("k2", "test bbb");
 
         // populate docs
-        for (Map.Entry<String, String> entry : matchingDocuments.entrySet()) {
-            mvc.perform(
-                    put("/documents/" + entry.getKey())
-                            .contentType(MediaType.TEXT_PLAIN)
-                            .content(entry.getValue()))
+        for (Map.Entry<String, String> entry : documents.entrySet()) {
+            mvc.perform(putDocumentRequest(entry.getKey(), entry.getValue()))
                     .andExpect(status().isOk());
-            System.out.println(entry.getKey() + "/" + entry.getValue());
-        }
-        for (Map.Entry<String, String> entry : notMatchingDocuments.entrySet()) {
-            mvc.perform(
-                    put("/documents/" + entry.getKey())
-                            .contentType(MediaType.TEXT_PLAIN)
-                            .content(entry.getValue()))
-                    .andExpect(status().isOk());
-            System.out.println(entry.getKey() + "/" + entry.getValue());
         }
 
         // test
-        String expectedKeysJson = new ObjectMapper().writeValueAsString(matchingDocuments.keySet());
-        mvc.perform(
-                get("/findDocuments")
-                        .param("query", query)
-                        .accept(MediaType.APPLICATION_JSON))
+        String expectedKeysJson = new ObjectMapper().writeValueAsString(documents.keySet());
+        mvc.perform(findDocumentRequest(query))
                 .andExpect(status().isOk())
                 .andDo(result -> assertEquals(expectedKeysJson, result.getResponse().getContentAsString(), false));
     }
